@@ -1,0 +1,87 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(*.pem)",
+      "Read(*.key)",
+      "Read(*credentials*)",
+      "Read(*secret*)",
+      "Read(id_rsa*)",
+      "Read(**/config/secrets/**)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(*.pem)",
+      "Edit(*.key)",
+      "Edit(*credentials*)",
+      "Edit(*secret*)",
+      "Edit(id_rsa*)",
+      "Edit(**/config/secrets/**)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(*.pem)",
+      "Write(*.key)",
+      "Write(*credentials*)",
+      "Write(*secret*)",
+      "Write(id_rsa*)",
+      "Write(**/config/secrets/**)",
+      "Bash(cat *.env*)",
+      "Bash(cat *.pem*)",
+      "Bash(cat *.key*)",
+      "Bash(cat *credentials*)",
+      "Bash(cat *secret*)",
+      "Bash(cat *id_rsa*)",
+      "Bash(cat *config/secrets*)",
+      "Bash(head *.env*)",
+      "Bash(head *.pem*)",
+      "Bash(head *.key*)",
+      "Bash(head *credentials*)",
+      "Bash(head *secret*)",
+      "Bash(head *id_rsa*)",
+      "Bash(head *config/secrets*)",
+      "Bash(tail *.env*)",
+      "Bash(tail *.pem*)",
+      "Bash(tail *.key*)",
+      "Bash(tail *credentials*)",
+      "Bash(tail *secret*)",
+      "Bash(tail *id_rsa*)",
+      "Bash(tail *config/secrets*)",
+      "Bash(cp *.env*)",
+      "Bash(cp *.pem*)",
+      "Bash(cp *.key*)",
+      "Bash(cp *credentials*)",
+      "Bash(cp *secret*)",
+      "Bash(cp *id_rsa*)",
+      "Bash(cp *config/secrets*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/hooks/sensitive-canary.sh\"",
+            "shell": "bash",
+            "statusMessage": "Checking file against sensitive-canary patterns..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "A `gh pr create` command is about to run — this is the final quality gate before a PR is raised. Read the checklist at $HOME/.claude/agents/pr-gatekeeper.md (e.g. via Bash: cat \"$HOME/.claude/agents/pr-gatekeeper.md\") and follow it exactly, in order: (1) build/compile check, (2) full test suite (not just diff-touching tests, and flag suspiciously skipped/disabled tests), (3) lint and typecheck, (4) coding standards against CLAUDE.md and any .claude/rules/*.md for the paths touched, (5) sensitive-file check (nothing matching .env, .env.*, *.pem, *.key, *credentials*, *secret*, or config/secrets/ may be staged), (6) a full diff self-review for leftover debug statements, commented-out blocks, hardcoded test data, and empty catch blocks. Use Bash to actually run the project's real build/test/lint commands — never report a result you did not actually observe. If every step passes, respond with exactly this JSON and nothing else: {\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"allow\"}}. If anything fails, respond with exactly this JSON and nothing else, filling in precisely what failed and how to fix it: {\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\", \"permissionDecisionReason\": \"<specifics>\"}}.",
+            "if": "Bash(gh pr create*)",
+            "timeout": 300,
+            "statusMessage": "Running pr-gatekeeper checks before raising PR..."
+          }
+        ]
+      }
+    ]
+  },
+  "tui": "fullscreen",
+  "effortLevel": "medium"
+}
